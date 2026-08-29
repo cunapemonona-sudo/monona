@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cuñape Monona — Panel admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --cm-blue:#0B6FAE; --cm-blue-dark:#084F7D;
+    --cm-cream:#FBF3E4; --cm-cream-2:#F3E8D4;
+    --cm-gold:#E7AF28; --cm-gold-dark:#B8841A;
+    --cm-ink:#2B2013; --cm-ink-soft:#5C4A34;
+    --cm-line:#E4D6BB; --cm-green:#25D366; --cm-red:#D8503A;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cm-cream);color:var(--cm-ink);font-family:'Inter',sans-serif;}
+  header{background:var(--cm-blue);color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;}
+  header h1{font-family:'Fraunces',serif;font-size:19px;margin:0;font-weight:600;}
+  header button{background:rgba(255,255,255,0.15);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;}
+  main{max-width:920px;margin:0 auto;padding:24px 16px 60px;}
+
+  #loginBox{max-width:340px;margin:80px auto;background:#fff;border:1px solid var(--cm-line);border-radius:var(--radius);padding:26px;}
+  #loginBox h2{font-family:'Fraunces',serif;font-size:20px;margin:0 0 4px;}
+  #loginBox p{font-size:13px;color:var(--cm-ink-soft);margin:0 0 18px;}
+  #loginBox input{width:100%;padding:10px 12px;margin-bottom:10px;border:1px solid var(--cm-line);border-radius:8px;font-size:14px;}
+  #loginBox button{width:100%;padding:11px;background:var(--cm-blue);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px;}
+  #loginError{color:var(--cm-red);font-size:13px;margin-top:8px;display:none;}
+
+  .tabs{display:flex;gap:6px;margin-bottom:18px;}
+  .tab{padding:9px 16px;border-radius:8px;border:1px solid var(--cm-line);background:#fff;font-size:13.5px;font-weight:600;cursor:pointer;color:var(--cm-ink-soft);}
+  .tab.active{background:var(--cm-blue);color:#fff;border-color:var(--cm-blue);}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--radius);overflow:hidden;border:1px solid var(--cm-line);}
+  th,td{padding:10px 12px;text-align:left;font-size:13.5px;border-bottom:1px solid var(--cm-line);}
+  th{background:var(--cm-cream-2);font-weight:600;color:var(--cm-ink-soft);font-size:12.5px;text-transform:uppercase;letter-spacing:0.4px;}
+  tr:last-child td{border-bottom:none;}
+
+  .badge{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+  .badge.pendiente{background:#FCE9C9;color:var(--cm-gold-dark);}
+  .badge.entregado{background:#D6F0DE;color:#1E7C42;}
+
+  .status-btn{border:none;padding:6px 10px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;}
+  .status-btn.to-entregado{background:var(--cm-green);color:#fff;}
+  .status-btn.to-pendiente{background:var(--cm-cream-2);color:var(--cm-ink-soft);}
+
+  .stock-input{width:70px;padding:6px 8px;border:1px solid var(--cm-line);border-radius:7px;font-size:13.5px;}
+  .save-btn{background:var(--cm-blue);color:#fff;border:none;padding:6px 12px;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;}
+  .save-ok{color:#1E7C42;font-size:12px;margin-left:8px;}
+
+  .empty{font-size:13.5px;color:var(--cm-ink-soft);padding:20px;text-align:center;}
+  h3.section-title{font-family:'Fraunces',serif;font-size:16px;margin:22px 0 10px;}
+</style>
+</head>
+<body>
+
+<div id="loginBox">
+  <h2>Panel admin</h2>
+  <p>Cuñape Monona — acceso solo para administración</p>
+  <input type="email" id="loginEmail" placeholder="Correo">
+  <input type="password" id="loginPass" placeholder="Contraseña">
+  <button id="loginSubmit">Ingresar</button>
+  <div id="loginError">Correo o contraseña incorrectos.</div>
+</div>
+
+<div id="dashboard" style="display:none;">
+  <header>
+    <h1>Cuñape Monona — Panel admin</h1>
+    <button id="logoutBtn">Cerrar sesión</button>
+  </header>
+  <main>
+    <div class="tabs">
+      <button class="tab active" data-panel="pedidos">Pedidos</button>
+      <button class="tab" data-panel="stock">Stock</button>
+      <button class="tab" data-panel="canjes">Canjes</button>
+    </div>
+
+    <div class="panel active" id="panel-pedidos">
+      <table>
+        <thead><tr><th>Fecha</th><th>Detalle</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="ordersBody"></tbody>
+      </table>
+      <div class="empty" id="ordersEmpty" style="display:none;">Todavía no hay pedidos registrados.</div>
+    </div>
+
+    <div class="panel" id="panel-stock">
+      <table>
+        <thead><tr><th>Producto</th><th>Stock disponible (bolsas)</th><th></th></tr></thead>
+        <tbody id="stockBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel" id="panel-canjes">
+      <table>
+        <thead><tr><th>Fecha</th><th>WhatsApp</th><th>Puntos usados</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="redemptionsBody"></tbody>
+      </table>
+      <div class="empty" id="redemptionsEmpty" style="display:none;">Todavía no hay canjes solicitados.</div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // ⚠️ Reemplazar con los datos reales de tu proyecto Supabase
+  const SUPABASE_URL = "TU_SUPABASE_URL";
+  const SUPABASE_ANON_KEY = "TU_SUPABASE_ANON_KEY";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function fmt(n){ return Number(n).toLocaleString('es-BO', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function fmtDate(d){ return new Date(d).toLocaleString('es-BO', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+
+  // ---------- LOGIN ----------
+  document.getElementById('loginSubmit').onclick = async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPass').value;
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if(error){
+      document.getElementById('loginError').style.display = 'block';
+    } else {
+      showDashboard();
+    }
+  };
+
+  document.getElementById('logoutBtn').onclick = async () => {
+    await sb.auth.signOut();
+    location.reload();
+  };
+
+  async function checkSession(){
+    const { data } = await sb.auth.getSession();
+    if(data.session) showDashboard();
+  }
+
+  function showDashboard(){
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadOrders();
+    loadStock();
+    loadRedemptions();
+  }
+
+  // ---------- TABS ----------
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+    };
+  });
+
+  // ---------- PEDIDOS ----------
+  async function loadOrders(){
+    const { data, error } = await sb.from('orders').select('*').order('created_at', { ascending:false });
+    const body = document.getElementById('ordersBody');
+    body.innerHTML = '';
+    if(error || !data || data.length === 0){
+      document.getElementById('ordersEmpty').style.display = 'block';
+      return;
+    }
+    document.getElementById('ordersEmpty').style.display = 'none';
+    data.forEach(order => {
+      const detail = (order.items || []).map(i => `${i.name} x${i.qty}`).join(', ');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${fmtDate(order.created_at)}</td>
+        <td>${detail}${order.customer_phone ? ' — ' + order.customer_phone : ''}</td>
+        <td>${fmt(order.total)} Bs.</td>
+        <td><span class="badge ${order.status}">${order.status}</span></td>
+        <td><button class="status-btn ${order.status==='pendiente'?'to-entregado':'to-pendiente'}" data-id="${order.id}" data-next="${order.status==='pendiente'?'entregado':'pendiente'}">
+          Marcar ${order.status==='pendiente'?'entregado':'pendiente'}
+        </button></td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('.status-btn').forEach(b => {
+      b.onclick = async () => {
+        await sb.from('orders').update({ status: b.dataset.next }).eq('id', b.dataset.id);
+        loadOrders();
+      };
+    });
+  }
+
+  // ---------- STOCK ----------
+  async function loadStock(){
+    const { data, error } = await sb.from('products').select('*').order('id');
+    const body = document.getElementById('stockBody');
+    body.innerHTML = '';
+    if(error || !data) return;
+    data.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.name}${p.weight ? ' · ' + p.weight : ''}</td>
+        <td><input type="number" min="0" class="stock-input" id="stock-${p.id}" value="${p.stock}"></td>
+        <td><button class="save-btn" data-id="${p.id}">Guardar</button><span class="save-ok" id="ok-${p.id}" style="display:none;">Guardado</span></td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('.save-btn').forEach(b => {
+      b.onclick = async () => {
+        const val = parseInt(document.getElementById('stock-' + b.dataset.id).value, 10) || 0;
+        await sb.from('products').update({ stock: val }).eq('id', b.dataset.id);
+        const ok = document.getElementById('ok-' + b.dataset.id);
+        ok.style.display = 'inline';
+        setTimeout(() => ok.style.display = 'none', 1500);
+      };
+    });
+  }
+
+  // ---------- CANJES ----------
+  async function loadRedemptions(){
+    const { data, error } = await sb.from('redemptions').select('*').order('created_at', { ascending:false });
+    const body = document.getElementById('redemptionsBody');
+    body.innerHTML = '';
+    if(error || !data || data.length === 0){
+      document.getElementById('redemptionsEmpty').style.display = 'block';
+      return;
+    }
+    document.getElementById('redemptionsEmpty').style.display = 'none';
+    data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${fmtDate(r.created_at)}</td>
+        <td>${r.player_phone || '—'}</td>
+        <td>${r.points_used}</td>
+        <td><span class="badge ${r.status}">${r.status}</span></td>
+        <td><button class="status-btn ${r.status==='pendiente'?'to-entregado':'to-pendiente'}" data-id="${r.id}" data-next="${r.status==='pendiente'?'entregado':'pendiente'}">
+          Marcar ${r.status==='pendiente'?'entregado':'pendiente'}
+        </button></td>
+      `;
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('.status-btn').forEach(b => {
+      b.onclick = async () => {
+        await sb.from('redemptions').update({ status: b.dataset.next }).eq('id', b.dataset.id);
+        loadRedemptions();
+      };
+    });
+  }
+
+  checkSession();
+</script>
+
+</body>
+</html>

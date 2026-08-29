@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cuñape Monona — Trivia cruceña</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --cm-blue:#0B6FAE; --cm-blue-dark:#084F7D;
+    --cm-cream:#FBF3E4; --cm-cream-2:#F3E8D4;
+    --cm-gold:#E7AF28; --cm-gold-dark:#B8841A;
+    --cm-ink:#2B2013; --cm-ink-soft:#5C4A34;
+    --cm-line:#E4D6BB; --cm-green:#25D366; --cm-green-dark:#128C43;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cm-cream);color:var(--cm-ink);font-family:'Inter',sans-serif;min-height:100vh;}
+  header{background:var(--cm-blue);color:#fff;padding:26px 20px;text-align:center;}
+  header h1{font-family:'Fraunces',serif;font-size:22px;margin:0 0 4px;font-weight:600;}
+  header p{margin:0;font-size:13.5px;color:#DCEAFB;}
+  main{max-width:480px;margin:0 auto;padding:22px 16px 60px;}
+
+  .card{background:#fff;border:1px solid var(--cm-line);border-radius:var(--radius);padding:22px;}
+
+  #startCard label{font-size:13px;font-weight:600;color:var(--cm-ink-soft);display:block;margin:12px 0 5px;}
+  #startCard input{width:100%;padding:10px 12px;border:1px solid var(--cm-line);border-radius:8px;font-size:14px;}
+  #startCard button{width:100%;margin-top:18px;padding:12px;background:var(--cm-gold);color:var(--cm-blue-dark);border:none;border-radius:10px;font-weight:700;font-size:14.5px;cursor:pointer;}
+  #startError{color:#B8481E;font-size:12.5px;margin-top:6px;display:none;}
+
+  .progress{font-size:12.5px;color:var(--cm-ink-soft);font-weight:600;margin-bottom:8px;}
+  .question{font-family:'Fraunces',serif;font-size:17px;font-weight:600;margin-bottom:16px;line-height:1.4;}
+  .option{
+    display:block;width:100%;text-align:left;
+    padding:12px 14px;margin-bottom:9px;
+    border:1px solid var(--cm-line);border-radius:10px;
+    background:var(--cm-cream-2);
+    font-size:14px;cursor:pointer;color:var(--cm-ink);
+  }
+  .option:hover{border-color:var(--cm-blue);}
+  .option.correct{background:#D6F0DE;border-color:#1E7C42;color:#1E7C42;font-weight:600;}
+  .option.wrong{background:#FBE0DA;border-color:#B8481E;color:#B8481E;font-weight:600;}
+  .option[disabled]{cursor:default;}
+
+  .points-tag{
+    display:inline-block;background:var(--cm-gold);color:var(--cm-blue-dark);
+    font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:20px;margin-bottom:14px;
+  }
+
+  #resultCard{display:none;text-align:center;}
+  #resultCard .big{font-family:'Fraunces',serif;font-size:32px;font-weight:700;color:var(--cm-blue);margin:6px 0;}
+  #resultCard p{font-size:14px;color:var(--cm-ink-soft);}
+  #redeemBtn{
+    margin-top:14px;width:100%;padding:12px;background:var(--cm-green);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14.5px;cursor:pointer;
+  }
+  #redeemBtn:disabled{background:#D9D3C4;color:#8a8577;cursor:not-allowed;}
+  #redeemMsg{font-size:13px;margin-top:10px;color:#1E7C42;display:none;}
+  #playAgain{margin-top:10px;background:none;border:none;color:var(--cm-blue);font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Trivia cruceña Monona</h1>
+  <p>Responde y acumula puntos canjeables por premios</p>
+</header>
+
+<main>
+  <div class="card" id="startCard">
+    <label>Tu nombre</label>
+    <input type="text" id="playerName" placeholder="Cómo te llamas">
+    <label>Tu WhatsApp</label>
+    <input type="text" id="playerPhone" placeholder="Ej: 70000000">
+    <div id="startError">Completa ambos datos para jugar.</div>
+    <button id="startBtn">Empezar a jugar</button>
+  </div>
+
+  <div class="card" id="quizCard" style="display:none;">
+    <div class="progress" id="progress"></div>
+    <div class="points-tag" id="pointsTag">0 puntos</div>
+    <div class="question" id="questionText"></div>
+    <div id="options"></div>
+  </div>
+
+  <div class="card" id="resultCard">
+    <p>¡Terminaste la trivia!</p>
+    <div class="big" id="finalPoints">0 puntos</div>
+    <p id="totalMsg"></p>
+    <button id="redeemBtn">Canjear 50 puntos por un premio</button>
+    <div id="redeemMsg"></div>
+    <button id="playAgain">Jugar otra ronda</button>
+  </div>
+</main>
+
+<script>
+  // ⚠️ Reemplazar con los datos reales de tu proyecto Supabase
+  const SUPABASE_URL = "TU_SUPABASE_URL";
+  const SUPABASE_ANON_KEY = "TU_SUPABASE_ANON_KEY";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const REDEEM_COST = 50;
+  const POINTS_PER_CORRECT = 10;
+
+  const questions = [
+    { q: "¿Cómo se le dice cariñosamente a la gente de Santa Cruz de la Sierra?", options: ["Cambas","Paceños","Chapacos","Vallunos"], correct: 0 },
+    { q: "¿Con qué ingrediente principal se prepara el cuñape?", options: ["Harina de trigo","Almidón de yuca y queso","Maíz molido","Arroz"], correct: 1 },
+    { q: "¿Cómo se llama la fiesta más grande y colorida de Santa Cruz, con comparsas y corsos?", options: ["Carnaval cruceño","Alasitas","Entrada del Gran Poder","Fiesta de la Cruz"], correct: 0 },
+    { q: "¿Qué instrumento es infaltable en las comparsas del carnaval cruceño?", options: ["Charango","Tambor y bombo","Zampoña","Acordeón"], correct: 1 },
+    { q: "¿Qué bebida tradicional cruceña se prepara con maíz fermentado?", options: ["Chicha","Singani puro","Api","Mocochinchi"], correct: 0 },
+    { q: "¿Cómo se conoce popularmente a un cruceño muy identificado con sus costumbres?", options: ["Camba de pura cepa","Kolla","Guaraní","Chaqueño"], correct: 0 },
+    { q: "El cuñape es un pariente cercano de un pan de queso muy conocido en Brasil, ¿cómo se llama?", options: ["Pão de queijo","Broa","Focaccia","Baguette"], correct: 0 },
+    { q: "¿Qué plato típico cruceño se sirve envuelto en hoja de plátano?", options: ["Cuñape","Masaco","Vigorón","Humita en chala de maíz"], correct: 3 },
+  ];
+
+  let player = null;
+  let currentQ = 0;
+  let sessionPoints = 0;
+  let answered = false;
+
+  document.getElementById('startBtn').onclick = async () => {
+    const name = document.getElementById('playerName').value.trim();
+    const phone = document.getElementById('playerPhone').value.trim();
+    if(!name || !phone){
+      document.getElementById('startError').style.display = 'block';
+      return;
+    }
+    document.getElementById('startError').style.display = 'none';
+
+    let { data: existing } = await sb.from('trivia_players').select('*').eq('phone', phone).maybeSingle();
+    if(!existing){
+      const { data: created } = await sb.from('trivia_players').insert({ phone, name }).select().single();
+      existing = created;
+    }
+    player = existing;
+
+    document.getElementById('startCard').style.display = 'none';
+    document.getElementById('quizCard').style.display = 'block';
+    showQuestion();
+  };
+
+  function showQuestion(){
+    answered = false;
+    const item = questions[currentQ];
+    document.getElementById('progress').textContent = `Pregunta ${currentQ+1} de ${questions.length}`;
+    document.getElementById('pointsTag').textContent = `${player.points + sessionPoints} puntos`;
+    document.getElementById('questionText').textContent = item.q;
+    const optionsEl = document.getElementById('options');
+    optionsEl.innerHTML = '';
+    item.options.forEach((opt, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'option';
+      btn.textContent = opt;
+      btn.onclick = () => selectAnswer(idx, btn);
+      optionsEl.appendChild(btn);
+    });
+  }
+
+  function selectAnswer(idx, btn){
+    if(answered) return;
+    answered = true;
+    const item = questions[currentQ];
+    const allBtns = document.querySelectorAll('.option');
+    allBtns.forEach(b => b.disabled = true);
+    if(idx === item.correct){
+      btn.classList.add('correct');
+      sessionPoints += POINTS_PER_CORRECT;
+    } else {
+      btn.classList.add('wrong');
+      allBtns[item.correct].classList.add('correct');
+    }
+    document.getElementById('pointsTag').textContent = `${player.points + sessionPoints} puntos`;
+    setTimeout(() => {
+      currentQ++;
+      if(currentQ < questions.length){
+        showQuestion();
+      } else {
+        finishQuiz();
+      }
+    }, 1100);
+  }
+
+  async function finishQuiz(){
+    document.getElementById('quizCard').style.display = 'none';
+    const newTotal = player.points + sessionPoints;
+    await sb.from('trivia_players').update({ points: newTotal }).eq('id', player.id);
+    player.points = newTotal;
+
+    document.getElementById('finalPoints').textContent = `+${sessionPoints} puntos`;
+    document.getElementById('totalMsg').textContent = `Llevas ${newTotal} puntos acumulados en total.`;
+    const redeemBtn = document.getElementById('redeemBtn');
+    redeemBtn.textContent = `Canjear ${REDEEM_COST} puntos por un premio`;
+    redeemBtn.disabled = newTotal < REDEEM_COST;
+    document.getElementById('resultCard').style.display = 'block';
+  }
+
+  document.getElementById('redeemBtn').onclick = async () => {
+    if(player.points < REDEEM_COST) return;
+    const newPoints = player.points - REDEEM_COST;
+    await sb.from('trivia_players').update({ points: newPoints }).eq('id', player.id);
+    await sb.from('redemptions').insert({ player_id: player.id, player_phone: player.phone, points_used: REDEEM_COST });
+    player.points = newPoints;
+    document.getElementById('redeemMsg').style.display = 'block';
+    document.getElementById('redeemMsg').textContent = 'Canje registrado. Escríbenos por WhatsApp y coordinamos la entrega de tu premio.';
+    document.getElementById('redeemBtn').disabled = true;
+  };
+
+  document.getElementById('playAgain').onclick = () => {
+    currentQ = 0; sessionPoints = 0;
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('quizCard').style.display = 'block';
+    showQuestion();
+  };
+</script>
+
+</body>
+</html>
