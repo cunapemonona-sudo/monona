@@ -5,21 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cuñape Monona — Trivia cruceña</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
-    --cm-blue:#0B6FAE; --cm-blue-dark:#084F7D;
-    --cm-cream:#FBF3E4; --cm-cream-2:#F3E8D4;
-    --cm-gold:#E7AF28; --cm-gold-dark:#B8841A;
-    --cm-ink:#2B2013; --cm-ink-soft:#5C4A34;
-    --cm-line:#E4D6BB; --cm-green:#25D366; --cm-green-dark:#128C43;
-    --radius:14px;
+    --cm-blue:#12A9E0; --cm-blue-dark:#0A7EAE;
+    --cm-cream:#EAF8FF; --cm-cream-2:#D7F0FC;
+    --cm-gold:#FFB627; --cm-gold-dark:#C98A0E;
+    --cm-ink:#0F2B36; --cm-ink-soft:#3F6272;
+    --cm-line:#C9E9F5; --cm-green:#25D366; --cm-green-dark:#128C43;
+    --radius:16px;
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--cm-cream);color:var(--cm-ink);font-family:'Inter',sans-serif;min-height:100vh;}
   header{background:var(--cm-blue);color:#fff;padding:26px 20px;text-align:center;}
-  header h1{font-family:'Fraunces',serif;font-size:22px;margin:0 0 4px;font-weight:600;}
+  header h1{font-family:'Baloo 2',sans-serif;font-size:22px;margin:0 0 4px;font-weight:600;}
   header p{margin:0;font-size:13.5px;color:#DCEAFB;}
   main{max-width:480px;margin:0 auto;padding:22px 16px 60px;}
 
@@ -31,7 +31,7 @@
   #startError{color:#B8481E;font-size:12.5px;margin-top:6px;display:none;}
 
   .progress{font-size:12.5px;color:var(--cm-ink-soft);font-weight:600;margin-bottom:8px;}
-  .question{font-family:'Fraunces',serif;font-size:17px;font-weight:600;margin-bottom:16px;line-height:1.4;}
+  .question{font-family:'Baloo 2',sans-serif;font-size:17px;font-weight:600;margin-bottom:16px;line-height:1.4;}
   .option{
     display:block;width:100%;text-align:left;
     padding:12px 14px;margin-bottom:9px;
@@ -50,7 +50,7 @@
   }
 
   #resultCard{display:none;text-align:center;}
-  #resultCard .big{font-family:'Fraunces',serif;font-size:32px;font-weight:700;color:var(--cm-blue);margin:6px 0;}
+  #resultCard .big{font-family:'Baloo 2',sans-serif;font-size:32px;font-weight:700;color:var(--cm-blue);margin:6px 0;}
   #resultCard p{font-size:14px;color:var(--cm-ink-soft);}
   #redeemBtn{
     margin-top:14px;width:100%;padding:12px;background:var(--cm-green);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:14.5px;cursor:pointer;
