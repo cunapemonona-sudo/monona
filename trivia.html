@@ -58,10 +58,34 @@
   #redeemBtn:disabled{background:#D9D3C4;color:#8a8577;cursor:not-allowed;}
   #redeemMsg{font-size:13px;margin-top:10px;color:#1E7C42;display:none;}
   #playAgain{margin-top:10px;background:none;border:none;color:var(--cm-blue);font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;}
+
+  .cm-nav{
+    position:sticky;top:0;z-index:40;
+    background:#fff;border-bottom:1px solid var(--cm-line);
+    display:flex;gap:6px;padding:8px 12px;overflow-x:auto;
+  }
+  .cm-nav a{
+    flex:0 0 auto;display:flex;align-items:center;gap:6px;
+    padding:8px 14px;border-radius:10px;
+    font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13px;
+    text-decoration:none;color:var(--cm-ink-soft);background:var(--cm-cream);
+  }
+  .cm-nav a.active{background:var(--cm-blue);color:#fff;}
+
+  .phone-row{display:flex;gap:8px;}
+  .country-select{
+    flex:0 0 92px;padding:10px 6px;border:1px solid var(--cm-line);border-radius:8px;font-size:13.5px;background:#fff;
+  }
+  .phone-row input{flex:1;}
 </style>
 </head>
 <body>
 
+<nav class="cm-nav">
+  <a href="index.html">🛒 Catálogo</a>
+  <a href="trivia.html" class="active">🎲 Trivia</a>
+  <a href="admin.html">⚙️ Admin</a>
+</nav>
 <header>
   <h1>Trivia cruceña Monona</h1>
   <p>Responde y acumula puntos canjeables por premios</p>
@@ -72,7 +96,18 @@
     <label>Tu nombre</label>
     <input type="text" id="playerName" placeholder="Cómo te llamas">
     <label>Tu WhatsApp</label>
-    <input type="text" id="playerPhone" placeholder="Ej: 70000000">
+    <div class="phone-row">
+      <select class="country-select" id="countryCode">
+        <option value="+591" selected>🇧🇴 +591</option>
+        <option value="+54">🇦🇷 +54</option>
+        <option value="+51">🇵🇪 +51</option>
+        <option value="+56">🇨🇱 +56</option>
+        <option value="+55">🇧🇷 +55</option>
+        <option value="+595">🇵🇾 +595</option>
+        <option value="+57">🇨🇴 +57</option>
+      </select>
+      <input type="text" id="playerPhone" placeholder="70000000" inputmode="numeric">
+    </div>
     <div id="startError">Completa ambos datos para jugar.</div>
     <button id="startBtn">Empezar a jugar</button>
   </div>
@@ -121,8 +156,10 @@
 
   document.getElementById('startBtn').onclick = async () => {
     const name = document.getElementById('playerName').value.trim();
-    const phone = document.getElementById('playerPhone').value.trim();
-    if(!name || !phone){
+    const rawPhone = document.getElementById('playerPhone').value.trim();
+    const code = document.getElementById('countryCode').value;
+    const phone = rawPhone ? `${code} ${rawPhone}` : '';
+    if(!name || !rawPhone){
       document.getElementById('startError').style.display = 'block';
       return;
     }

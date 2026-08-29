@@ -56,9 +56,27 @@
 
   .empty{font-size:13.5px;color:var(--cm-ink-soft);padding:20px;text-align:center;}
   h3.section-title{font-family:'Baloo 2',sans-serif;font-size:16px;margin:22px 0 10px;}
+
+  .cm-nav{
+    background:#fff;border-bottom:1px solid var(--cm-line);
+    display:flex;gap:6px;padding:8px 12px;overflow-x:auto;
+  }
+  .cm-nav a{
+    flex:0 0 auto;display:flex;align-items:center;gap:6px;
+    padding:8px 14px;border-radius:10px;
+    font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13px;
+    text-decoration:none;color:var(--cm-ink-soft);background:var(--cm-cream);
+  }
+  .cm-nav a.active{background:var(--cm-blue);color:#fff;}
 </style>
 </head>
 <body>
+
+<nav class="cm-nav">
+  <a href="index.html">🛒 Catálogo</a>
+  <a href="trivia.html">🎲 Trivia</a>
+  <a href="admin.html" class="active">⚙️ Admin</a>
+</nav>
 
 <div id="loginBox">
   <h2>Panel admin</h2>
