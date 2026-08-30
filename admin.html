@@ -29,7 +29,7 @@
 
   /* ---------- HEADER (fijo, íconos a la izquierda, logo centrado) ---------- */
   header.app-header{position:sticky;top:0;z-index:100;background:var(--cm-blue);}
-  .header-inner{position:relative;max-width:560px;margin:0 auto;padding:16px 18px 26px;}
+  .header-inner{position:relative;max-width:960px;margin:0 auto;padding:16px 18px 26px;}
   .nav-icons-row{display:flex;gap:8px;}
   .nav-tab{background:none;border:none;cursor:pointer;font-family:inherit;padding:0;text-decoration:none;display:block;}
   .nav-tab svg{width:54px;height:54px;display:block;}
@@ -129,6 +129,35 @@
 
   .empty{font-size:13.5px;color:var(--cm-ink-soft);padding:26px 16px;text-align:center;background:#fff;border-radius:var(--radius);border:1px dashed var(--cm-line);}
 
+  /* ---------- RESUMEN ---------- */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:22px;}
+  .stat-card{background:#fff;border:1px solid var(--cm-line);border-radius:var(--radius);padding:14px 16px;}
+  .stat-label{font-size:11.5px;font-weight:700;color:var(--cm-ink-soft);text-transform:uppercase;letter-spacing:0.3px;}
+  .stat-value{font-family:'Urbanist',sans-serif;font-size:24px;font-weight:800;color:var(--cm-blue);margin-top:4px;}
+  .stat-warning .stat-value{color:var(--cm-orange);}
+  .section-title{font-family:'Urbanist',sans-serif;font-size:15px;font-weight:800;margin:0 0 10px;}
+
+  /* ---------- PRODUCTOS ---------- */
+  .add-product-btn{
+    width:100%;padding:11px;margin-bottom:12px;background:var(--cm-blue);color:#fff;border:none;
+    border-radius:10px;font-weight:700;font-size:13.5px;cursor:pointer;
+  }
+  .add-product-form{
+    display:none;background:#fff;border:1px solid var(--cm-line);border-radius:var(--radius);
+    padding:16px;margin-bottom:16px;
+  }
+  .add-product-form.open{display:block;}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;}
+  .form-grid label{display:block;font-size:11px;font-weight:700;color:var(--cm-ink-soft);margin-bottom:4px;}
+  .form-grid input{width:100%;padding:8px 10px;border:1px solid var(--cm-line);border-radius:8px;font-size:13px;}
+  .form-actions{display:flex;gap:8px;margin-top:14px;}
+  .form-actions .save-btn{flex:1;padding:10px;}
+  .cancel-btn{flex:1;padding:10px;background:var(--cm-cream-2);color:var(--cm-ink-soft);border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;}
+  .delete-btn{background:var(--cm-red);color:#fff;border:none;padding:7px 11px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:6px;}
+  .price-edit-row{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:11.5px;}
+  .price-edit-row input{width:64px;padding:4px 6px;border:1px solid var(--cm-line);border-radius:6px;font-size:11.5px;}
+  .price-edit-row span{color:var(--cm-ink-soft);}
+
   /* ---------- RESPONSIVE: tabla -> tarjetas en celular ---------- */
   @media (max-width:640px){
     table, thead, tbody, th, td, tr{ display:block; }
@@ -218,12 +247,40 @@
   </header>
   <main>
     <div class="tabs">
-      <button class="tab active" data-panel="pedidos">Pedidos</button>
-      <button class="tab" data-panel="stock">Stock</button>
+      <button class="tab active" data-panel="resumen">Resumen</button>
+      <button class="tab" data-panel="pedidos">Pedidos</button>
+      <button class="tab" data-panel="productos">Productos</button>
       <button class="tab" data-panel="canjes">Canjes</button>
     </div>
 
-    <div class="panel active" id="panel-pedidos">
+    <div class="panel active" id="panel-resumen">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Pedidos hoy</div>
+          <div class="stat-value" id="statOrdersToday">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Ingresos hoy</div>
+          <div class="stat-value" id="statRevenueToday">0.00 Bs.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Pedidos pendientes</div>
+          <div class="stat-value" id="statPending">0</div>
+        </div>
+        <div class="stat-card stat-warning" id="statLowStockCard">
+          <div class="stat-label">Stock bajo / agotado</div>
+          <div class="stat-value" id="statLowStock">0</div>
+        </div>
+      </div>
+      <h3 class="section-title">Más pedidos (histórico)</h3>
+      <table>
+        <thead><tr><th>Producto</th><th>Bolsas pedidas</th></tr></thead>
+        <tbody id="topProductsBody"></tbody>
+      </table>
+      <div class="empty" id="topProductsEmpty" style="display:none;">Todavía no hay pedidos registrados.</div>
+    </div>
+
+    <div class="panel" id="panel-pedidos">
       <div class="toolbar">
         <input type="text" id="ordersSearch" placeholder="Buscar por producto o teléfono...">
         <button class="filter-chip active" data-status="todos">Todos</button>
@@ -237,9 +294,26 @@
       <div class="empty" id="ordersEmpty" style="display:none;">Todavía no hay pedidos que coincidan.</div>
     </div>
 
-    <div class="panel" id="panel-stock">
+    <div class="panel" id="panel-productos">
+      <button class="add-product-btn" id="showAddProduct">+ Agregar producto</button>
+
+      <div class="add-product-form" id="addProductForm">
+        <div class="form-grid">
+          <div><label>Nombre</label><input type="text" id="newName" placeholder="Ej: Empanadas de queso"></div>
+          <div><label>Peso (opcional)</label><input type="text" id="newWeight" placeholder="Ej: 100 gr."></div>
+          <div><label>Precio por bolsa (Bs.)</label><input type="number" step="0.5" id="newBagPrice" placeholder="10.50"></div>
+          <div><label>Bolsas por paquete</label><input type="number" id="newBagsPerPack" placeholder="10"></div>
+          <div><label>Precio del paquete (Bs.)</label><input type="number" step="0.5" id="newPackPrice" placeholder="100"></div>
+          <div><label>Stock inicial</label><input type="number" id="newStock" placeholder="0"></div>
+        </div>
+        <div class="form-actions">
+          <button class="save-btn" id="createProductBtn">Crear producto</button>
+          <button class="cancel-btn" id="cancelAddProduct">Cancelar</button>
+        </div>
+      </div>
+
       <table>
-        <thead><tr><th>Producto</th><th>Estado</th><th>Bolsas</th><th></th></tr></thead>
+        <thead><tr><th>Producto</th><th>Precios</th><th>Estado</th><th>Bolsas</th><th></th></tr></thead>
         <tbody id="stockBody"></tbody>
       </table>
     </div>
@@ -313,6 +387,7 @@
     const { data, error } = await sb.from('orders').select('*').order('created_at', { ascending:false });
     allOrders = (!error && data) ? data : [];
     renderOrders();
+    computeStats();
   }
 
   function renderOrders(){
@@ -372,7 +447,9 @@
     };
   });
 
-  // ---------- STOCK ----------
+  // ---------- PRODUCTOS ----------
+  let allProducts = [];
+
   function stockBadge(stock){
     if(stock <= 0) return '<span class="badge agotado">Agotado</span>';
     if(stock < LOW_STOCK_THRESHOLD) return '<span class="badge bajo">Stock bajo</span>';
@@ -381,13 +458,28 @@
 
   async function loadStock(){
     const { data, error } = await sb.from('products').select('*').order('id');
+    allProducts = (!error && data) ? data : [];
+    renderStock();
+    computeStats();
+  }
+
+  function renderStock(){
     const body = document.getElementById('stockBody');
     body.innerHTML = '';
-    if(error || !data) return;
-    data.forEach(p => {
+    allProducts.forEach(p => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td data-label="Producto">${p.name}${p.weight ? ' · ' + p.weight : ''}</td>
+        <td data-label="Producto">
+          <input type="text" class="stock-input" style="width:100%;text-align:left;" id="name-${p.id}" value="${p.name}">
+          <input type="text" class="stock-input" style="width:100%;text-align:left;margin-top:4px;" id="weight-${p.id}" value="${p.weight || ''}" placeholder="Peso (opcional)">
+        </td>
+        <td data-label="Precios">
+          <div class="price-edit-row">
+            <span>Bs./bolsa</span><input type="number" step="0.5" id="bagprice-${p.id}" value="${p.bag_price}">
+            <span>bolsas/paq.</span><input type="number" id="bagspack-${p.id}" value="${p.bags_per_pack}">
+            <span>Bs./paq.</span><input type="number" step="0.5" id="packprice-${p.id}" value="${p.pack_price}">
+          </div>
+        </td>
         <td data-label="Estado" id="badge-${p.id}">${stockBadge(p.stock)}</td>
         <td data-label="Bolsas">
           <div class="stock-stepper">
@@ -396,7 +488,11 @@
             <button data-step="1" data-id="${p.id}">+</button>
           </div>
         </td>
-        <td data-label=""><button class="save-btn" data-id="${p.id}">Guardar</button><span class="save-ok" id="ok-${p.id}" style="display:none;">Guardado</span></td>
+        <td data-label="">
+          <button class="save-btn" data-id="${p.id}">Guardar</button>
+          <span class="save-ok" id="ok-${p.id}" style="display:none;">Guardado</span>
+          <br><button class="delete-btn" data-id="${p.id}" data-name="${p.name}">Eliminar</button>
+        </td>
       `;
       body.appendChild(tr);
     });
@@ -409,14 +505,89 @@
     });
     body.querySelectorAll('.save-btn').forEach(b => {
       b.onclick = async () => {
-        const val = parseInt(document.getElementById('stock-' + b.dataset.id).value, 10) || 0;
-        await sb.from('products').update({ stock: val }).eq('id', b.dataset.id);
-        document.getElementById('badge-' + b.dataset.id).innerHTML = stockBadge(val);
-        const ok = document.getElementById('ok-' + b.dataset.id);
+        const id = b.dataset.id;
+        const updates = {
+          name: document.getElementById('name-'+id).value.trim(),
+          weight: document.getElementById('weight-'+id).value.trim() || null,
+          bag_price: parseFloat(document.getElementById('bagprice-'+id).value) || 0,
+          bags_per_pack: parseInt(document.getElementById('bagspack-'+id).value, 10) || 0,
+          pack_price: parseFloat(document.getElementById('packprice-'+id).value) || 0,
+          stock: parseInt(document.getElementById('stock-'+id).value, 10) || 0,
+        };
+        await sb.from('products').update(updates).eq('id', id);
+        document.getElementById('badge-'+id).innerHTML = stockBadge(updates.stock);
+        const ok = document.getElementById('ok-'+id);
         ok.style.display = 'inline';
         setTimeout(() => ok.style.display = 'none', 1500);
+        loadStock();
       };
     });
+    body.querySelectorAll('.delete-btn').forEach(b => {
+      b.onclick = async () => {
+        if(!confirm(`¿Eliminar "${b.dataset.name}" del catálogo? Esta acción no se puede deshacer.`)) return;
+        await sb.from('products').delete().eq('id', b.dataset.id);
+        loadStock();
+      };
+    });
+  }
+
+  document.getElementById('showAddProduct').onclick = () => {
+    document.getElementById('addProductForm').classList.add('open');
+  };
+  document.getElementById('cancelAddProduct').onclick = () => {
+    document.getElementById('addProductForm').classList.remove('open');
+  };
+  document.getElementById('createProductBtn').onclick = async () => {
+    const name = document.getElementById('newName').value.trim();
+    if(!name){ alert('El producto necesita un nombre.'); return; }
+    const payload = {
+      name,
+      weight: document.getElementById('newWeight').value.trim() || null,
+      bag_price: parseFloat(document.getElementById('newBagPrice').value) || 0,
+      bags_per_pack: parseInt(document.getElementById('newBagsPerPack').value, 10) || 0,
+      pack_price: parseFloat(document.getElementById('newPackPrice').value) || 0,
+      stock: parseInt(document.getElementById('newStock').value, 10) || 0,
+    };
+    const { error } = await sb.from('products').insert(payload);
+    if(error){ alert('No se pudo crear el producto. Si el error persiste, avisa a soporte.'); return; }
+    ['newName','newWeight','newBagPrice','newBagsPerPack','newPackPrice','newStock'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('addProductForm').classList.remove('open');
+    loadStock();
+  };
+
+  // ---------- RESUMEN ----------
+  function computeStats(){
+    if(!allOrders) return;
+    const todayStr = new Date().toDateString();
+    const ordersToday = allOrders.filter(o => new Date(o.created_at).toDateString() === todayStr);
+    const revenueToday = ordersToday.reduce((s,o) => s + Number(o.total || 0), 0);
+    const pending = allOrders.filter(o => o.status === 'pendiente').length;
+    const lowStock = allProducts.filter(p => p.stock < LOW_STOCK_THRESHOLD).length;
+
+    document.getElementById('statOrdersToday').textContent = ordersToday.length;
+    document.getElementById('statRevenueToday').textContent = fmt(revenueToday) + ' Bs.';
+    document.getElementById('statPending').textContent = pending;
+    document.getElementById('statLowStock').textContent = lowStock;
+
+    const totals = {};
+    allOrders.forEach(o => {
+      (o.items || []).forEach(i => {
+        totals[i.name] = (totals[i.name] || 0) + (i.qty || 0);
+      });
+    });
+    const sorted = Object.entries(totals).sort((a,b) => b[1]-a[1]);
+    const body = document.getElementById('topProductsBody');
+    body.innerHTML = '';
+    if(sorted.length === 0){
+      document.getElementById('topProductsEmpty').style.display = 'block';
+    } else {
+      document.getElementById('topProductsEmpty').style.display = 'none';
+      sorted.forEach(([name, qty]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td data-label="Producto">${name}</td><td data-label="Bolsas pedidas">${qty}</td>`;
+        body.appendChild(tr);
+      });
+    }
   }
 
   // ---------- CANJES ----------
