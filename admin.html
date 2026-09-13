@@ -145,6 +145,12 @@
   }
   .report-btn:hover{background:var(--cm-blue-dark);}
   .report-btn:disabled{opacity:0.6;cursor:wait;}
+  .code-panel{background:#fff;border:1px solid var(--cm-line);border-radius:12px;padding:14px 16px;margin-bottom:22px;}
+  .code-panel label{display:block;font-size:11.5px;font-weight:700;color:var(--cm-ink-soft);margin-bottom:8px;}
+  .code-row{display:flex;gap:8px;}
+  .code-row input{flex:1;padding:9px 12px;border:1px solid var(--cm-line);border-radius:8px;font-size:14px;text-transform:uppercase;}
+  .code-row button{background:var(--cm-blue);color:#fff;border:none;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;}
+  .code-ok{color:#1E7C42;font-size:12px;font-weight:600;display:inline-block;margin-top:6px;}
 
   /* ---------- PRODUCTOS ---------- */
   .add-product-btn{
@@ -159,6 +165,12 @@
   .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;}
   .form-grid label{display:block;font-size:11px;font-weight:700;color:var(--cm-ink-soft);margin-bottom:4px;}
   .form-grid input{width:100%;padding:8px 10px;border:1px solid var(--cm-line);border-radius:8px;font-size:13px;}
+  .image-input-row{display:flex;align-items:center;gap:8px;}
+  .image-input-row input[type="text"]{flex:1;}
+  .image-input-row .or-text{font-size:11px;color:var(--cm-ink-soft);}
+  .image-input-row input[type="file"]{font-size:11px;max-width:150px;}
+  .image-preview{margin-top:10px;}
+  .image-preview img{width:90px;height:90px;object-fit:cover;border-radius:10px;border:1px solid var(--cm-line);}
   .form-actions{display:flex;gap:8px;margin-top:14px;}
   .form-actions .save-btn{flex:1;padding:10px;}
   .cancel-btn{flex:1;padding:10px;background:var(--cm-cream-2);color:var(--cm-ink-soft);border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;}
@@ -264,6 +276,15 @@
 
     <div class="panel active" id="panel-resumen">
       <button class="report-btn" id="downloadReportBtn">📄 Descargar reporte semanal (PDF)</button>
+
+      <div class="code-panel">
+        <label>Código de invitación de la trivia (vigente)</label>
+        <div class="code-row">
+          <input type="text" id="inviteCodeInput" placeholder="Cargando...">
+          <button id="saveCodeBtn">Guardar</button>
+        </div>
+        <span class="code-ok" id="codeSaveOk" style="display:none;">Guardado</span>
+      </div>
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-label">Pedidos hoy</div>
@@ -282,7 +303,13 @@
           <div class="stat-value" id="statLowStock">0</div>
         </div>
       </div>
-      <h3 class="section-title">Más pedidos (histórico)</h3>
+      <h3 class="section-title">Ventas por día (últimos 14 días)</h3>
+      <table>
+        <thead><tr><th>Fecha</th><th>Pedidos</th><th>Ingresos</th></tr></thead>
+        <tbody id="dailyBody"></tbody>
+      </table>
+
+      <h3 class="section-title" style="margin-top:22px;">Más pedidos (histórico)</h3>
       <table>
         <thead><tr><th>Producto</th><th>Bolsas pedidas</th></tr></thead>
         <tbody id="topProductsBody"></tbody>
@@ -298,7 +325,7 @@
         <button class="filter-chip" data-status="entregado">Entregados</button>
       </div>
       <table>
-        <thead><tr><th>Fecha</th><th>Detalle</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+        <thead><tr><th>Fecha</th><th>WhatsApp</th><th>Detalle</th><th>Total</th><th>Estado</th><th></th></tr></thead>
         <tbody id="ordersBody"></tbody>
       </table>
       <div class="empty" id="ordersEmpty" style="display:none;">Todavía no hay pedidos que coincidan.</div>
@@ -316,6 +343,13 @@
           <div><label>Precio del paquete (Bs.)</label><input type="number" step="0.5" id="newPackPrice" placeholder="100"></div>
           <div><label>Stock inicial</label><input type="number" id="newStock" placeholder="0"></div>
         </div>
+        <label style="display:block;font-size:11px;font-weight:700;color:var(--cm-ink-soft);margin:12px 0 4px;">Imagen del producto</label>
+        <div class="image-input-row">
+          <input type="text" id="newImageUrl" placeholder="Pega una URL de imagen (https://...)">
+          <span class="or-text">o</span>
+          <input type="file" id="newImageFile" accept="image/*">
+        </div>
+        <div class="image-preview" id="newImagePreview" style="display:none;"><img id="newImagePreviewImg"></div>
         <div class="form-actions">
           <button class="save-btn" id="createProductBtn">Crear producto</button>
           <button class="cancel-btn" id="cancelAddProduct">Cancelar</button>
@@ -330,7 +364,7 @@
 
     <div class="panel" id="panel-canjes">
       <table>
-        <thead><tr><th>Fecha</th><th>WhatsApp</th><th>Puntos usados</th><th>Estado</th><th></th></tr></thead>
+        <thead><tr><th>Fecha</th><th>WhatsApp</th><th>Premio / Puntos</th><th>Estado</th><th></th></tr></thead>
         <tbody id="redemptionsBody"></tbody>
       </table>
       <div class="empty" id="redemptionsEmpty" style="display:none;">Todavía no hay canjes solicitados.</div>
@@ -378,7 +412,23 @@
     loadOrders();
     loadStock();
     loadRedemptions();
+    loadInviteCode();
   }
+
+  async function loadInviteCode(){
+    const { data } = await sb.from('game_config').select('invite_code').eq('id', 1).maybeSingle();
+    document.getElementById('inviteCodeInput').value = data ? data.invite_code : '';
+  }
+
+  document.getElementById('saveCodeBtn').onclick = async () => {
+    const val = document.getElementById('inviteCodeInput').value.trim().toUpperCase();
+    if(!val) return;
+    await sb.from('game_config').update({ invite_code: val, updated_at: new Date().toISOString() }).eq('id', 1);
+    document.getElementById('inviteCodeInput').value = val;
+    const ok = document.getElementById('codeSaveOk');
+    ok.style.display = 'inline-block';
+    setTimeout(() => ok.style.display = 'none', 1800);
+  };
 
   // ---------- TABS ----------
   document.querySelectorAll('.tab').forEach(btn => {
@@ -427,7 +477,8 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td data-label="Fecha">${fmtDate(order.created_at)}</td>
-        <td data-label="Detalle" class="detail-cell">${detail}${order.customer_phone ? ' — ' + order.customer_phone : ''}</td>
+        <td data-label="WhatsApp">${order.customer_phone || '—'}</td>
+        <td data-label="Detalle" class="detail-cell">${detail}</td>
         <td data-label="Total">${fmt(order.total)} Bs.</td>
         <td data-label="Estado"><span class="badge ${order.status}">${order.status}</span></td>
         <td data-label="">
@@ -482,8 +533,14 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td data-label="Producto">
-          <input type="text" class="stock-input" style="width:100%;text-align:left;" id="name-${p.id}" value="${p.name}">
-          <input type="text" class="stock-input" style="width:100%;text-align:left;margin-top:4px;" id="weight-${p.id}" value="${p.weight || ''}" placeholder="Peso (opcional)">
+          <div style="display:flex;gap:8px;align-items:flex-start;">
+            <img src="${p.image_url || ''}" id="thumb-${p.id}" style="width:44px;height:44px;border-radius:8px;object-fit:cover;background:#eee;flex-shrink:0;${p.image_url ? '' : 'display:none;'}">
+            <div style="flex:1;">
+              <input type="text" class="stock-input" style="width:100%;text-align:left;" id="name-${p.id}" value="${p.name}">
+              <input type="text" class="stock-input" style="width:100%;text-align:left;margin-top:4px;" id="weight-${p.id}" value="${p.weight || ''}" placeholder="Peso (opcional)">
+              <input type="text" class="stock-input" style="width:100%;text-align:left;margin-top:4px;font-size:10.5px;" id="image-${p.id}" value="${p.image_url || ''}" placeholder="URL de imagen">
+            </div>
+          </div>
         </td>
         <td data-label="Precios">
           <div class="price-edit-row">
@@ -525,8 +582,10 @@
           bags_per_pack: parseInt(document.getElementById('bagspack-'+id).value, 10) || 0,
           pack_price: parseFloat(document.getElementById('packprice-'+id).value) || 0,
           stock: parseInt(document.getElementById('stock-'+id).value, 10) || 0,
+          image_url: document.getElementById('image-'+id).value.trim() || null,
         };
-        await sb.from('products').update(updates).eq('id', id);
+        const { error } = await sb.from('products').update(updates).eq('id', id);
+        if(error){ alert('No se pudo guardar:\n\n' + error.message); console.error(error); return; }
         document.getElementById('badge-'+id).innerHTML = stockBadge(updates.stock);
         const ok = document.getElementById('ok-'+id);
         ok.style.display = 'inline';
@@ -537,7 +596,8 @@
     body.querySelectorAll('.delete-btn').forEach(b => {
       b.onclick = async () => {
         if(!confirm(`¿Eliminar "${b.dataset.name}" del catálogo? Esta acción no se puede deshacer.`)) return;
-        await sb.from('products').delete().eq('id', b.dataset.id);
+        const { error } = await sb.from('products').delete().eq('id', b.dataset.id);
+        if(error){ alert('No se pudo eliminar:\n\n' + error.message); console.error(error); return; }
         loadStock();
       };
     });
@@ -549,6 +609,25 @@
   document.getElementById('cancelAddProduct').onclick = () => {
     document.getElementById('addProductForm').classList.remove('open');
   };
+  document.getElementById('newImageFile').onchange = (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      document.getElementById('newImageUrl').value = ev.target.result;
+      document.getElementById('newImagePreviewImg').src = ev.target.result;
+      document.getElementById('newImagePreview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  };
+  document.getElementById('newImageUrl').addEventListener('input', (e) => {
+    const val = e.target.value.trim();
+    if(val && val.startsWith('http')){
+      document.getElementById('newImagePreviewImg').src = val;
+      document.getElementById('newImagePreview').style.display = 'block';
+    }
+  });
+
   document.getElementById('createProductBtn').onclick = async () => {
     const name = document.getElementById('newName').value.trim();
     if(!name){ alert('El producto necesita un nombre.'); return; }
@@ -559,10 +638,16 @@
       bags_per_pack: parseInt(document.getElementById('newBagsPerPack').value, 10) || 0,
       pack_price: parseFloat(document.getElementById('newPackPrice').value) || 0,
       stock: parseInt(document.getElementById('newStock').value, 10) || 0,
+      image_url: document.getElementById('newImageUrl').value.trim() || null,
     };
     const { error } = await sb.from('products').insert(payload);
-    if(error){ alert('No se pudo crear el producto. Si el error persiste, avisa a soporte.'); return; }
-    ['newName','newWeight','newBagPrice','newBagsPerPack','newPackPrice','newStock'].forEach(id => document.getElementById(id).value = '');
+    if(error){
+      alert('No se pudo crear el producto:\n\n' + error.message);
+      console.error(error);
+      return;
+    }
+    ['newName','newWeight','newBagPrice','newBagsPerPack','newPackPrice','newStock','newImageUrl'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('newImagePreview').style.display = 'none';
     document.getElementById('addProductForm').classList.remove('open');
     loadStock();
   };
@@ -580,6 +665,24 @@
     document.getElementById('statRevenueToday').textContent = fmt(revenueToday) + ' Bs.';
     document.getElementById('statPending').textContent = pending;
     document.getElementById('statLowStock').textContent = lowStock;
+
+    // ---- ventas por día (últimos 14 días) ----
+    const dailyBody = document.getElementById('dailyBody');
+    dailyBody.innerHTML = '';
+    for(let i = 0; i < 14; i++){
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dStr = d.toDateString();
+      const dayOrders = allOrders.filter(o => new Date(o.created_at).toDateString() === dStr);
+      const dayRevenue = dayOrders.reduce((s,o) => s + Number(o.total || 0), 0);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-label="Fecha">${d.toLocaleDateString('es-BO', {day:'2-digit', month:'2-digit'})}${i===0 ? ' (hoy)' : ''}</td>
+        <td data-label="Pedidos">${dayOrders.length}</td>
+        <td data-label="Ingresos">${fmt(dayRevenue)} Bs.</td>
+      `;
+      dailyBody.appendChild(tr);
+    }
 
     const totals = {};
     allOrders.forEach(o => {
@@ -617,7 +720,7 @@
       tr.innerHTML = `
         <td data-label="Fecha">${fmtDate(r.created_at)}</td>
         <td data-label="WhatsApp">${r.player_phone || '—'}</td>
-        <td data-label="Puntos">${r.points_used}</td>
+        <td data-label="Premio / Puntos">${r.prize ? `🎡 ${r.prize}` : `${r.points_used} pts`}</td>
         <td data-label="Estado"><span class="badge ${r.status}">${r.status}</span></td>
         <td data-label="">
           <button class="status-btn ${r.status==='pendiente'?'to-entregado':'to-pendiente'}" data-id="${r.id}" data-next="${r.status==='pendiente'?'entregado':'pendiente'}">
