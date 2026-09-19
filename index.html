@@ -136,11 +136,6 @@
     .header-inner{max-width:1180px;}
     .cart-inner{max-width:1180px;}
   }
-  .placeholder-note{
-    margin:0 0 18px;padding:10px 14px;background:#fff;
-    border:1.5px dashed var(--cm-gold);border-radius:12px;
-    font-size:12px;color:var(--cm-ink-soft);text-align:center;
-  }
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 16px;}
   @media (min-width:760px){ .grid{grid-template-columns:repeat(3,1fr);} }
   @media (min-width:1080px){ .grid{grid-template-columns:repeat(4,1fr);} }
@@ -155,22 +150,6 @@
   }
   .img-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
   .img-placeholder{font-size:12.5px;color:#8a8a8a;text-align:center;padding:0 10px;}
-  .edit-btn{
-    position:absolute;right:6px;bottom:6px;width:28px;height:28px;border-radius:50%;
-    background:rgba(30,30,30,0.55);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;
-  }
-  .edit-btn svg{width:14px;height:14px;}
-  .edit-panel{
-    position:absolute;inset:0;background:rgba(20,50,70,0.92);display:none;
-    flex-direction:column;justify-content:center;gap:7px;padding:12px;
-  }
-  .edit-panel.open{display:flex;}
-  .edit-panel label{color:#fff;font-size:10.5px;font-weight:700;}
-  .edit-panel input[type="text"]{width:100%;padding:6px 7px;border-radius:7px;border:none;font-size:11.5px;}
-  .edit-panel .row{display:flex;gap:5px;}
-  .edit-panel button{flex:1;padding:6px 5px;border-radius:7px;border:none;font-size:11px;font-weight:700;cursor:pointer;}
-  .btn-apply{background:var(--cm-gold);color:#fff;}
-  .btn-cancel{background:rgba(255,255,255,0.2);color:#fff;}
 
   .card-title{font-weight:800;color:var(--cm-blue);font-size:15px;margin:10px 0 2px;}
   .card-title .weight-inline{color:var(--cm-gold-light);font-weight:700;}
@@ -417,10 +396,6 @@
 </header>
 
 <main>
-  <div class="placeholder-note">
-    Faltan las fotos de Paraguayos y Bizcocho Maíz — toca el lápiz en esas dos para subirlas cuando las tengas.
-  </div>
-
   <div class="grid" id="grid"></div>
 
   <div class="social-footer">
@@ -589,8 +564,6 @@
     renderCart();
   }
 
-  const editIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
-
   function renderCard(p){
     const card = document.createElement('div');
     card.className = 'card';
@@ -599,17 +572,6 @@
       <div class="img-wrap" id="imgwrap-${p.id}">
         ${hasImage ? `<img src="${p.image}" alt="${p.name}">` : ''}
         <div class="img-placeholder" id="imgph-${p.id}" style="${hasImage ? 'display:none;' : ''}">Foto pendiente</div>
-        <button class="edit-btn" id="editbtn-${p.id}">${editIcon}</button>
-        <div class="edit-panel" id="editpanel-${p.id}">
-          <label>Subir imagen</label>
-          <input type="file" accept="image/*" id="filein-${p.id}" style="font-size:10px;color:#fff;">
-          <label>O pegar URL</label>
-          <input type="text" id="urlin-${p.id}" placeholder="https://...">
-          <div class="row">
-            <button class="btn-apply" id="applyurl-${p.id}">Aplicar</button>
-            <button class="btn-cancel" id="canceledit-${p.id}">Cerrar</button>
-          </div>
-        </div>
       </div>
       <div class="card-title">${p.name}${p.weight ? ` <span class="weight-inline">/ ${p.weight}</span>` : ''}</div>
       <div class="card-unit">+${p.bagsPerPack} bolsas ${fmt(p.packPrice)} bs</div>
@@ -631,32 +593,6 @@
 
     document.getElementById(`plus-${p.id}`).onclick = () => updateQty(p.id, 1);
     document.getElementById(`minus-${p.id}`).onclick = () => updateQty(p.id, -1);
-    document.getElementById(`editbtn-${p.id}`).onclick = () => document.getElementById(`editpanel-${p.id}`).classList.add('open');
-    document.getElementById(`canceledit-${p.id}`).onclick = () => document.getElementById(`editpanel-${p.id}`).classList.remove('open');
-    document.getElementById(`applyurl-${p.id}`).onclick = () => {
-      const url = document.getElementById(`urlin-${p.id}`).value.trim();
-      if(url) setImage(p.id, url);
-      document.getElementById(`editpanel-${p.id}`).classList.remove('open');
-    };
-    document.getElementById(`filein-${p.id}`).onchange = (e) => {
-      const file = e.target.files[0];
-      if(!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setImage(p.id, ev.target.result);
-        document.getElementById(`editpanel-${p.id}`).classList.remove('open');
-      };
-      reader.readAsDataURL(file);
-    };
-  }
-
-  function setImage(id, src){
-    const wrap = document.getElementById(`imgwrap-${id}`);
-    let img = wrap.querySelector('img');
-    if(!img){ img = document.createElement('img'); wrap.insertBefore(img, wrap.firstChild); }
-    img.src = src;
-    const ph = document.getElementById(`imgph-${id}`);
-    if(ph) ph.style.display = 'none';
   }
 
   function updateQty(id, delta){
