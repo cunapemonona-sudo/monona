@@ -15,6 +15,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Monona">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="trivia-content.js"></script>
 <style>
   :root{
     --cm-blue:#1E92D1; --cm-blue-2:#2288C2; --cm-blue-deep:#166695;
@@ -66,11 +67,22 @@
   .country-select{flex:0 0 88px;padding:11px 8px;border:1.5px solid var(--cm-blue);border-radius:24px;font-size:13px;background:#fff;font-family:inherit;}
   .phone-row .pill-input{flex:1;}
   #startError{color:#C0392B;font-size:12.5px;margin-top:10px;display:none;text-align:center;}
-  .gold-btn{
-    display:block;width:100%;margin-top:22px;padding:13px;background:none;border:none;
-    color:var(--cm-gold);font-family:'Urbanist',sans-serif;font-weight:800;font-size:16px;
-    cursor:pointer;text-align:center;
+  .find-code-link{display:block;text-align:center;font-size:11.5px;color:var(--cm-blue);margin-top:6px;text-decoration:none;font-weight:600;}
+  .find-code-link:hover{text-decoration:underline;}
+  .wheel-code-error{color:#C0392B;font-size:12px;margin-top:10px;display:none;}
+  .fun-btn{
+    display:block;width:100%;padding:14px;background:var(--cm-blue);color:#fff;border:none;
+    border-radius:24px;font-family:'Urbanist',sans-serif;font-weight:800;font-size:15.5px;cursor:pointer;
   }
+  .fun-btn:hover{background:var(--cm-blue-deep);}
+  .or-divider{text-align:center;color:var(--cm-ink-soft);font-size:12px;font-weight:700;margin:18px 0;}
+  .prize-intro{font-size:12.5px;color:var(--cm-ink-soft);text-align:center;margin:0 0 6px;line-height:1.5;}
+  .gold-btn{
+    display:block;width:100%;margin-top:22px;padding:14px;background:var(--cm-gold);border:none;
+    color:#fff;font-family:'Urbanist',sans-serif;font-weight:800;font-size:15.5px;
+    cursor:pointer;text-align:center;border-radius:24px;
+  }
+  .gold-btn:hover{background:var(--cm-gold-dark);}
   .gold-btn:disabled{opacity:0.5;}
 
   .progress{font-size:12.5px;color:var(--cm-ink-soft);font-weight:700;margin-bottom:8px;text-align:center;}
@@ -95,7 +107,41 @@
   #redeemBtn{margin-top:6px;width:100%;padding:13px;background:var(--cm-green);color:#fff;border:none;border-radius:24px;font-weight:800;font-size:14.5px;cursor:pointer;}
   #redeemBtn:disabled{background:#D9D3C4;color:#8a8577;cursor:not-allowed;}
   #redeemMsg{font-size:13px;margin-top:12px;color:#1E7C42;display:none;}
-  #playAgain{margin-top:12px;background:none;border:none;color:var(--cm-blue);font-size:13px;font-weight:700;cursor:pointer;text-decoration:underline;}
+
+  /* ---------- PANTALLA DE PREMIO (puntaje perfecto) ---------- */
+  #winCard{display:none;text-align:center;}
+  #winCard .win-badge{
+    width:96px;height:96px;border-radius:50%;
+    background:linear-gradient(135deg,var(--cm-gold),var(--cm-gold-light));
+    display:flex;align-items:center;justify-content:center;margin:0 auto 16px;
+    font-size:44px;
+  }
+  #winCard h2{font-family:'Kaushan Script',cursive;color:var(--cm-gold-dark);font-size:28px;margin:0 0 10px;}
+  #winCard p{font-size:14px;color:var(--cm-ink-soft);margin:0 0 20px;line-height:1.5;}
+  #goWheelBtn{
+    width:100%;padding:13px;background:var(--cm-blue);color:#fff;border:none;border-radius:24px;
+    font-weight:800;font-size:15px;cursor:pointer;
+  }
+
+  /* ---------- RULETA ---------- */
+  #wheelCard{display:none;text-align:center;}
+  #wheelCard h2{font-family:'Kaushan Script',cursive;color:var(--cm-gold-dark);font-size:24px;margin:0 0 16px;}
+  .wheel-wrap{position:relative;width:280px;height:280px;margin:0 auto 22px;}
+  .wheel-pointer{
+    position:absolute;top:-6px;left:50%;transform:translateX(-50%);
+    width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;
+    border-top:22px solid var(--cm-blue-deep);z-index:5;
+  }
+  #wheelSvg{width:100%;height:100%;transition:transform 4.5s cubic-bezier(0.15,0.85,0.25,1);}
+  #spinBtn{
+    width:100%;padding:13px;background:var(--cm-gold);color:#fff;border:none;border-radius:24px;
+    font-weight:800;font-size:15px;cursor:pointer;
+  }
+  #spinBtn:disabled{background:#D9D3C4;color:#8a8577;cursor:not-allowed;}
+  #wheelResult{display:none;margin-top:16px;}
+  #wheelResult .prize-name{font-family:'Kaushan Script',cursive;font-size:24px;color:var(--cm-blue-deep);margin:6px 0;}
+  #wheelResult p{font-size:13px;color:var(--cm-ink-soft);}
+  .one-play-note{font-size:11.5px;color:var(--cm-ink-soft);margin-top:16px;font-style:italic;}
 
   .xavier-footer{max-width:220px;margin:36px auto 0;}
   .xavier-footer svg{width:100%;display:block;}
@@ -150,9 +196,15 @@
 </header>
 
 <main>
-  <div class="kaushan-title">Responde y acumula puntos<br>para canjearlos por premios</div>
+  <div class="kaushan-title">Trivia cruceña Monona</div>
 
   <div class="card" id="startCard">
+    <button class="fun-btn" id="playFunBtn">🎲 Jugar por diversión</button>
+
+    <div class="or-divider">— o —</div>
+
+    <p class="prize-intro">¿Quieres ganar un premio Monona? Agrega tu WhatsApp y el código de la promo — así se habilita la ruleta si sacas puntaje perfecto.</p>
+
     <label>Tu nombre</label>
     <input type="text" class="pill-input" id="playerName" placeholder="Cómo te llamas">
     <label>Tu WhatsApp</label>
@@ -168,12 +220,15 @@
       </select>
       <input type="text" class="pill-input" id="playerPhone" placeholder="70000000" inputmode="numeric">
     </div>
-    <div id="startError">Completa ambos datos para jugar.</div>
-    <button class="gold-btn" id="startBtn">Empeza a jugar</button>
+    <label>Código de la promo</label>
+    <input type="text" class="pill-input" id="startCode" placeholder="Ej: MONONA2026" autocapitalize="characters">
+    <a href="#" id="findCodeLink" target="_blank" class="find-code-link">¿No tienes el código? Búscalo en nuestro Facebook →</a>
+    <div id="startError"></div>
+    <button class="gold-btn" id="startPrizeBtn">🏆 Jugar para ganar un premio</button>
   </div>
 
   <div class="card" id="quizCard" style="display:none;">
-    <div class="points-tag" id="pointsTag">0 puntos</div>
+    <div class="points-tag" id="pointsTag">0 aciertos</div>
     <div class="progress" id="progress"></div>
     <div class="question" id="questionText"></div>
     <div id="options"></div>
@@ -181,11 +236,32 @@
 
   <div class="card" id="resultCard">
     <p>¡Terminaste la trivia!</p>
-    <div class="big" id="finalPoints">0 puntos</div>
+    <div class="big" id="finalPoints">0 / 10</div>
     <p id="totalMsg"></p>
-    <button id="redeemBtn">Canjear 50 puntos por un premio</button>
-    <div id="redeemMsg"></div>
-    <button id="playAgain">Jugar otra ronda</button>
+    <button id="playAgainBtn">Jugar de nuevo</button>
+  </div>
+
+
+  <div class="card" id="winCard">
+    <div class="win-badge">🏆</div>
+    <h2>¡Ganaste un premio Monona!</h2>
+    <p>Respondiste todas las preguntas correctamente. Gira la ruleta para ver qué te llevas.</p>
+    <button id="goWheelBtn">Girar la ruleta</button>
+  </div>
+
+
+  <div class="card" id="wheelCard">
+    <h2>Ruleta de la suerte</h2>
+    <div class="wheel-wrap">
+      <div class="wheel-pointer"></div>
+      <svg id="wheelSvg" viewBox="0 0 280 280"></svg>
+    </div>
+    <button id="spinBtn">Girar</button>
+    <div id="wheelResult">
+      <p>¡Te ganaste un(a)!</p>
+      <div class="prize-name" id="prizeName"></div>
+      <p>Muéstrale esta pantalla a Monona por WhatsApp para coordinar la entrega.</p>
+    </div>
   </div>
 
   <div class="xavier-footer"><svg viewBox="0 0 778.43 428.84" xmlns="http://www.w3.org/2000/svg"><style>
@@ -258,82 +334,112 @@
   const SUPABASE_ANON_KEY = "sb_publishable_edu0MAlmqqfAtyXsAQqZog_paAaQ1W-";
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const REDEEM_COST = 50;
-  const POINTS_PER_CORRECT = 10;
 
-  const questions = [
-    { q: "¿Cómo se le dice cariñosamente a la gente de Santa Cruz de la Sierra?", options: ["Cambas","Paceños","Chapacos","Vallunos"], correct: 0 },
-    { q: "¿Con qué ingrediente principal se prepara el cuñape?", options: ["Harina de trigo","Almidón de yuca y queso","Maíz molido","Arroz"], correct: 1 },
-    { q: "¿Cómo se llama la fiesta más grande y colorida de Santa Cruz, con comparsas y corsos?", options: ["Carnaval cruceño","Alasitas","Entrada del Gran Poder","Fiesta de la Cruz"], correct: 0 },
-    { q: "¿Qué instrumento es infaltable en las comparsas del carnaval cruceño?", options: ["Charango","Tambor y bombo","Zampoña","Acordeón"], correct: 1 },
-    { q: "¿Qué bebida tradicional cruceña se prepara con maíz fermentado?", options: ["Chicha","Singani puro","Api","Mocochinchi"], correct: 0 },
-    { q: "¿Cómo se conoce popularmente a un cruceño muy identificado con sus costumbres?", options: ["Camba de pura cepa","Kolla","Guaraní","Chaqueño"], correct: 0 },
-    { q: "El cuñape es un pariente cercano de un pan de queso muy conocido en Brasil, ¿cómo se llama?", options: ["Pão de queijo","Broa","Focaccia","Baguette"], correct: 0 },
-    { q: "¿Qué plato típico cruceño se sirve envuelto en hoja de plátano?", options: ["Cuñape","Masaco","Vigorón","Humita en chala de maíz"], correct: 3 },
-  ];
 
-  let player = null;
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
   let currentQ = 0;
-  let sessionPoints = 0;
+  let correctCount = 0;
   let answered = false;
+  let roundQuestions = [];
+  let gameMode = 'fun'; // 'fun' o 'prize'
+  let currentPhone = '';
 
-  document.getElementById('startBtn').onclick = async () => {
+  document.getElementById('findCodeLink').href = SOCIAL_LINKS.facebook;
+
+  document.getElementById('playFunBtn').onclick = () => {
+    gameMode = 'fun';
+    beginQuiz();
+  };
+
+  document.getElementById('startPrizeBtn').onclick = async () => {
     const name = document.getElementById('playerName').value.trim();
     const rawPhone = document.getElementById('playerPhone').value.trim();
-    const code = document.getElementById('countryCode').value;
-    const phone = rawPhone ? `${code} ${rawPhone}` : '';
-    if(!name || !rawPhone){
-      document.getElementById('startError').style.display = 'block';
+    const countryCode = document.getElementById('countryCode').value;
+    const code = document.getElementById('startCode').value.trim();
+    const errEl = document.getElementById('startError');
+
+    if(!name || !rawPhone || !code){
+      errEl.textContent = 'Completa tu nombre, tu WhatsApp y el código para jugar por un premio.';
+      errEl.style.display = 'block';
       return;
     }
-    document.getElementById('startError').style.display = 'none';
 
-    let { data: existing } = await sb.from('trivia_players').select('*').eq('phone', phone).maybeSingle();
-    if(!existing){
-      const { data: created } = await sb.from('trivia_players').insert({ phone, name }).select().single();
-      existing = created;
+    const { data: config } = await sb.from('game_config').select('invite_code').eq('id', 1).maybeSingle();
+    const validCode = (config && config.invite_code) ? config.invite_code.trim().toUpperCase() : null;
+    if(!validCode || code.toUpperCase() !== validCode){
+      errEl.textContent = 'Código incorrecto — búscalo en nuestro Facebook.';
+      errEl.style.display = 'block';
+      return;
     }
-    player = existing;
+    errEl.style.display = 'none';
 
+    currentPhone = `${countryCode} ${rawPhone}`;
+    gameMode = 'prize';
+    beginQuiz();
+  };
+
+  function beginQuiz(){
+    startRound();
     document.getElementById('startCard').style.display = 'none';
     document.getElementById('quizCard').style.display = 'block';
     showQuestion();
-  };
+  }
+
+  function startRound(){
+    // Elige ROUND_SIZE preguntas al azar del banco completo, y baraja
+    // el orden de las opciones de cada una.
+    const pool = shuffle(TRIVIA_QUESTIONS).slice(0, ROUND_SIZE);
+    roundQuestions = pool.map(item => ({
+      q: item.q,
+      correct: item.correct,
+      options: shuffle(item.options),
+    }));
+    currentQ = 0;
+    correctCount = 0;
+  }
 
   function showQuestion(){
     answered = false;
-    const item = questions[currentQ];
-    document.getElementById('progress').textContent = `Pregunta ${currentQ+1} de ${questions.length}`;
-    document.getElementById('pointsTag').textContent = `${player.points + sessionPoints} puntos`;
+    const item = roundQuestions[currentQ];
+    document.getElementById('progress').textContent = `Pregunta ${currentQ+1} de ${roundQuestions.length}`;
+    document.getElementById('pointsTag').textContent = `${correctCount} aciertos`;
     document.getElementById('questionText').textContent = item.q;
     const optionsEl = document.getElementById('options');
     optionsEl.innerHTML = '';
-    item.options.forEach((opt, idx) => {
+    item.options.forEach((opt) => {
       const btn = document.createElement('button');
       btn.className = 'option';
       btn.textContent = opt;
-      btn.onclick = () => selectAnswer(idx, btn);
+      btn.onclick = () => selectAnswer(opt, btn);
       optionsEl.appendChild(btn);
     });
   }
 
-  function selectAnswer(idx, btn){
+  function selectAnswer(chosen, btn){
     if(answered) return;
     answered = true;
-    const item = questions[currentQ];
+    const item = roundQuestions[currentQ];
     const allBtns = document.querySelectorAll('.option');
     allBtns.forEach(b => b.disabled = true);
-    if(idx === item.correct){
+    if(chosen === item.correct){
       btn.classList.add('correct');
-      sessionPoints += POINTS_PER_CORRECT;
+      correctCount++;
     } else {
       btn.classList.add('wrong');
-      allBtns[item.correct].classList.add('correct');
+      allBtns.forEach(b => { if(b.textContent === item.correct) b.classList.add('correct'); });
     }
-    document.getElementById('pointsTag').textContent = `${player.points + sessionPoints} puntos`;
+    document.getElementById('pointsTag').textContent = `${correctCount} aciertos`;
     setTimeout(() => {
       currentQ++;
-      if(currentQ < questions.length){
+      if(currentQ < roundQuestions.length){
         showQuestion();
       } else {
         finishQuiz();
@@ -341,38 +447,84 @@
     }, 1100);
   }
 
-  async function finishQuiz(){
+  function finishQuiz(){
     document.getElementById('quizCard').style.display = 'none';
-    const newTotal = player.points + sessionPoints;
-    await sb.from('trivia_players').update({ points: newTotal }).eq('id', player.id);
-    player.points = newTotal;
 
-    document.getElementById('finalPoints').textContent = `+${sessionPoints} puntos`;
-    document.getElementById('totalMsg').textContent = `Llevas ${newTotal} puntos acumulados en total.`;
-    const redeemBtn = document.getElementById('redeemBtn');
-    redeemBtn.textContent = `Canjear ${REDEEM_COST} puntos por un premio`;
-    redeemBtn.disabled = newTotal < REDEEM_COST;
+    if(gameMode === 'prize' && correctCount === ROUND_SIZE){
+      // Puntaje perfecto en modo premio: pasa directo a la ruleta
+      document.getElementById('winCard').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('finalPoints').textContent = `${correctCount} / ${ROUND_SIZE}`;
+    if(gameMode === 'fun' && correctCount === ROUND_SIZE){
+      document.getElementById('totalMsg').textContent = '¡Puntaje perfecto! Jugaste por diversión — si quieres ir por un premio real, jugá de nuevo agregando tu WhatsApp y el código.';
+    } else {
+      document.getElementById('totalMsg').textContent = 'Los puntos no se acumulan de una ronda a otra — cada partida empieza de cero.';
+    }
     document.getElementById('resultCard').style.display = 'block';
   }
 
-  document.getElementById('redeemBtn').onclick = async () => {
-    if(player.points < REDEEM_COST) return;
-    const newPoints = player.points - REDEEM_COST;
-    await sb.from('trivia_players').update({ points: newPoints }).eq('id', player.id);
-    await sb.from('redemptions').insert({ player_id: player.id, player_phone: player.phone, points_used: REDEEM_COST });
-    player.points = newPoints;
-    document.getElementById('redeemMsg').style.display = 'block';
-    document.getElementById('redeemMsg').textContent = 'Canje registrado. Escríbenos por WhatsApp y coordinamos la entrega de tu premio.';
-    document.getElementById('redeemBtn').disabled = true;
+  document.getElementById('playAgainBtn').onclick = () => {
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('startCard').style.display = 'block';
   };
 
-  document.getElementById('playAgain').onclick = () => {
-    currentQ = 0; sessionPoints = 0;
-    document.getElementById('resultCard').style.display = 'none';
-    document.getElementById('quizCard').style.display = 'block';
-    showQuestion();
+  // ---------- RULETA DE LA SUERTE ----------
+  document.getElementById('goWheelBtn').onclick = () => {
+    document.getElementById('winCard').style.display = 'none';
+    document.getElementById('wheelCard').style.display = 'block';
+    drawWheel();
   };
-if ('serviceWorker' in navigator) {
+
+  function drawWheel(){
+    const svg = document.getElementById('wheelSvg');
+    const n = WHEEL_PRIZES.length;
+    const cx = 140, cy = 140, r = 138;
+    const slice = (2 * Math.PI) / n;
+    let html = '';
+    for(let i = 0; i < n; i++){
+      const prize = WHEEL_PRIZES[i];
+      const a0 = i * slice - Math.PI/2;
+      const a1 = (i+1) * slice - Math.PI/2;
+      const x0 = cx + r*Math.cos(a0), y0 = cy + r*Math.sin(a0);
+      const x1 = cx + r*Math.cos(a1), y1 = cy + r*Math.sin(a1);
+      html += `<path d="M${cx},${cy} L${x0.toFixed(2)},${y0.toFixed(2)} A${r},${r} 0 0,1 ${x1.toFixed(2)},${y1.toFixed(2)} Z" fill="${prize.color}" stroke="#fff" stroke-width="2"/>`;
+      const mid = a0 + slice/2;
+      const iconX = cx + (r*0.7)*Math.cos(mid), iconY = cy + (r*0.7)*Math.sin(mid);
+      const textX = cx + (r*0.42)*Math.cos(mid), textY = cy + (r*0.42)*Math.sin(mid);
+      const deg = (mid * 180/Math.PI) + 90;
+      html += `<text x="${iconX.toFixed(2)}" y="${iconY.toFixed(2)}" font-size="20" text-anchor="middle" dominant-baseline="middle" transform="rotate(${deg.toFixed(2)} ${iconX.toFixed(2)} ${iconY.toFixed(2)})">${prize.icon}</text>`;
+      html += `<text x="${textX.toFixed(2)}" y="${textY.toFixed(2)}" fill="#fff" font-size="8.5" font-family="Urbanist, sans-serif" font-weight="700" text-anchor="middle" transform="rotate(${deg.toFixed(2)} ${textX.toFixed(2)} ${textY.toFixed(2)})">${prize.name}</text>`;
+    }
+    svg.innerHTML = html;
+    svg.style.transform = 'rotate(0deg)';
+  }
+
+  document.getElementById('spinBtn').onclick = async () => {
+    const btn = document.getElementById('spinBtn');
+    btn.disabled = true;
+    const n = WHEEL_PRIZES.length;
+    const winnerIndex = Math.floor(Math.random() * n);
+    const slice = 360 / n;
+    // El puntero está arriba (0°). Centramos el premio elegido ahí,
+    // con varias vueltas completas para el efecto de giro.
+    const targetAngle = 360 * 5 + (360 - (winnerIndex * slice + slice/2));
+    const svg = document.getElementById('wheelSvg');
+    svg.style.transform = `rotate(${targetAngle}deg)`;
+
+    setTimeout(async () => {
+      const prize = WHEEL_PRIZES[winnerIndex];
+      document.getElementById('prizeName').textContent = `${prize.icon} ${prize.name}`;
+      document.getElementById('wheelResult').style.display = 'block';
+      btn.style.display = 'none';
+      try{
+        await sb.from('redemptions').insert({ player_phone: currentPhone, points_used: 0, prize: prize.name });
+      }catch(e){ console.warn('No se pudo registrar el premio de la ruleta:', e); }
+    }, 4600);
+  };
+
+  if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     });
