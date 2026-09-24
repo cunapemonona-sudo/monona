@@ -382,6 +382,31 @@
     errEl.style.display = 'none';
 
     currentPhone = `${countryCode} ${rawPhone}`;
+
+    // Un solo intento por número de WhatsApp. Se valida contra los premios
+    // registrados en Supabase y además se guarda una marca local para evitar
+    // repetir la partida desde el mismo navegador.
+    const normalizedPhone = currentPhone.replace(/\D/g, '');
+    const { data: previousPlays, error: previousPlayError } = await sb
+      .from('redemptions')
+      .select('id')
+      .eq('player_phone', currentPhone)
+      .limit(1);
+
+    if(previousPlayError){
+      console.warn('No se pudo comprobar si el número ya jugó:', previousPlayError);
+    }
+
+    const alreadyPlayedLocally = localStorage.getItem(`monona_played_${normalizedPhone}`) === '1';
+    if((previousPlays && previousPlays.length > 0) || alreadyPlayedLocally){
+      errEl.textContent = 'Este número de WhatsApp ya participó. Solo se permite una partida por número.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // La marca local se coloca antes de iniciar la trivia para bloquear
+    // inmediatamente un segundo intento desde este navegador.
+    localStorage.setItem(`monona_played_${normalizedPhone}`, '1');
     gameMode = 'prize';
     beginQuiz();
   };
