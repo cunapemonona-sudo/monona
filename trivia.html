@@ -470,6 +470,19 @@
     document.getElementById('startCard').style.display = 'block';
   };
 
+  // Premios de la ruleta
+  const CUSTOM_CUSTOM_WHEEL_PRIZES = [
+    { name: 'Polera', icon: '👕', color: '#1E92D1' },
+    { name: 'Peque', icon: '🎁', color: '#F8B001' },
+    { name: 'Taza', icon: '☕', color: '#6E240D' },
+    { name: 'Peque', icon: '🎁', color: '#25D366' },
+    { name: 'Hermética', icon: '🥡', color: '#1E92D1' },
+    { name: 'Peque', icon: '🎁', color: '#F8B001' },
+    { name: 'Sombrero', icon: '🧢', color: '#6E240D' },
+    { name: 'Peque', icon: '🎁', color: '#25D366' },
+    { name: 'Abre fácil', icon: '🔓', color: '#1E92D1' }
+  ];
+
   // ---------- RULETA DE LA SUERTE ----------
   document.getElementById('goWheelBtn').onclick = () => {
     document.getElementById('winCard').style.display = 'none';
@@ -479,12 +492,12 @@
 
   function drawWheel(){
     const svg = document.getElementById('wheelSvg');
-    const n = WHEEL_PRIZES.length;
+    const n = CUSTOM_WHEEL_PRIZES.length;
     const cx = 140, cy = 140, r = 138;
     const slice = (2 * Math.PI) / n;
     let html = '';
     for(let i = 0; i < n; i++){
-      const prize = WHEEL_PRIZES[i];
+      const prize = CUSTOM_WHEEL_PRIZES[i];
       const a0 = i * slice - Math.PI/2;
       const a1 = (i+1) * slice - Math.PI/2;
       const x0 = cx + r*Math.cos(a0), y0 = cy + r*Math.sin(a0);
@@ -504,7 +517,7 @@
   document.getElementById('spinBtn').onclick = async () => {
     const btn = document.getElementById('spinBtn');
     btn.disabled = true;
-    const n = WHEEL_PRIZES.length;
+    const n = CUSTOM_WHEEL_PRIZES.length;
     const winnerIndex = Math.floor(Math.random() * n);
     const slice = 360 / n;
     // El puntero está arriba (0°). Centramos el premio elegido ahí,
@@ -514,7 +527,7 @@
     svg.style.transform = `rotate(${targetAngle}deg)`;
 
     setTimeout(async () => {
-      const prize = WHEEL_PRIZES[winnerIndex];
+      const prize = CUSTOM_WHEEL_PRIZES[winnerIndex];
       document.getElementById('prizeName').textContent = `${prize.icon} ${prize.name}`;
       document.getElementById('wheelResult').style.display = 'block';
       btn.style.display = 'none';
